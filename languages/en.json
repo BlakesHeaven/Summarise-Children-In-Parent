@@ -1,0 +1,15 @@
+{
+	"plugin-data":
+	{
+		"name": "Summarise Children In Parent",
+		"description": "Displays a brief bulleted summary in the Parent page of all the children."
+	},
+	"enable-for-static-label"	: "Enable For Static Pages",
+	"enable-for-sticky-label"	: "Enable For Sticky Pages",
+	"enable-for-normal-label"	: "Enable For Normal Pages",
+	"selection-enabled"			: "Enabled",
+	"selection-disabled)"		: "Disabled",
+	
+	"summary-label" 			: "Events Summary:",
+	"at-a-glance"				: "At A Glance"
+}
