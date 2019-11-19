@@ -98,9 +98,7 @@ class pluginSummariseChildrenInParent extends Plugin {
 		return $html;
 	}
 
-	// Admin Config Form
-
-
+	// Summary
 	public function pageEnd()
 	{
 		global $L;
@@ -121,21 +119,47 @@ class pluginSummariseChildrenInParent extends Plugin {
 			$children = $page->children();
 			foreach ($children as $child) {
 
+				$eventDate	= $child->custom('EventDate');
+				$openDate	= $child->custom('OpenDate');
+				$closeDate	= $child->custom('CloseDate');
+				$cost		= $child->custom('Cost');
 
-				$cost = $formatter->formatCurrency($child->custom('Cost'), "GBP") . "<br>";
+				IF (empty($cost)) {
+					$cost = '';
+				}
+				ELSE {
+					$cost = ' ~ '.$formatter->formatCurrency($cost, "GBP") . "<br>";
+				}
 
-				$eventDate = IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($child->custom('EventDate'))
-								,	"eee dd MMM yyyy"	//UCI standard formatted string
-								,	@$locale );
-				$openDate	= IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($child->custom('OpenDate'))
+				IF (empty($eventDate)) {
+					$eventDate = '';
+				}
+				ELSE {
+					$eventDate = ' ~ '.IntlDateFormatter::formatObject(
+										IntlCalendar::fromDateTime($eventDate)
+									,	"eee dd MMM yyyy"	//UCI standard formatted string
+									,	@$locale );
+				}
+
+				IF (empty($openDate)) {
+					$openDate = 'TBC';
+				}
+				ELSE {
+				$openDate = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($openDate)
 								,	"dd/MM/yyyy"	//UCI standard formatted string
 								,	@$locale );
-				$closeDate	= IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($child->custom('CloseDate'))
+				}
+				
+				IF (empty($closeDate)) {
+					$closeDate = 'TBC';
+				}
+				ELSE {
+				$closeDate = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($closeDate)
 								,	"dd/MM/yyyy"	//UCI standard formatted string
 								,	@$locale );
+				}
 
 				$bulletImage = $child->thumbCoverImage();
 				if (empty($bulletImage)) {
@@ -165,13 +189,12 @@ class pluginSummariseChildrenInParent extends Plugin {
 				$html .= '<div class="entry-inner">';
 				$html .= '	<header class="entry-header">';
 				$html .= '		<h5 class="entry-title title-font text-italic">';
-				$html .= '			<a href="' . $child->permalink().'" rel="bookmark">'.$child->title() . " ~ $eventDate ~ $cost</a>";
+				$html .= '			<a href="' . $child->permalink().'" rel="bookmark">'.$child->title() . "$eventDate $cost</a>";
 				$html .= '		</h5>';
 				$html .= 		"Tickets available from $openDate to $closeDate";					
 				$html .= '	</header>';
 
 				$html .= '	<div class="entry-summary">';
-
 
 				if(strlen($child->description()) > 0 ){
                     $html .= $child->description();
@@ -187,7 +210,6 @@ class pluginSummariseChildrenInParent extends Plugin {
 				$html .= '</div>';
 
 				$html .= '</article><hr>';
-				
 			}
 		}
 
@@ -198,9 +220,6 @@ class pluginSummariseChildrenInParent extends Plugin {
 	public function pageBegin()
 	{
 		global $L;
-		//global $url;
-		//global $site;
-		//global $pages;
 		global $page;
 
 		$formatter = new NumberFormatter(@$locale,  NumberFormatter::CURRENCY);
@@ -219,34 +238,51 @@ class pluginSummariseChildrenInParent extends Plugin {
 		// Check if the page has children
 		if ( ( $isChild ) and ( $show ) )
 		{
-
-			$cost = $formatter->formatCurrency($page->custom('Cost'), "GBP");
-
-			$eventDate = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($page->custom('EventDate'))
-							,	"eee dd MMMM yyyy"	//UCI standard formatted string
-							,	@$locale );
-
-			$eventTime = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($page->custom('EventDate'))
-							,	"HH:mm"	//UCI standard formatted string
-							,	@$locale );
-			IF ($eventTime = '00:00') {$eventTime = 'TBC';}
-			
-			$openDate = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($page->custom('OpenDate'))
-							,	"dd/MM/yyyy"	//UCI standard formatted string
-							,	@$locale );
-
-			$closeDate = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($page->custom('CloseDate'))
-							,	"dd/MM/yyyy"	//UCI standard formatted string
-							,	@$locale );
-
-			$venueLocation = $page->custom('Venue');
-
+			$eventDate	= $page->custom('EventDate');
+			$openDate	= $page->custom('OpenDate');
+			$closeDate	= $page->custom('CloseDate');
+			$venueLocation = $page->custom('VenueLocation');
 			$eventDuration = $page->custom('EventDuration');
-			IF ((empty($eventDuration)) OR ($eventDuration = '')) { $eventDuration = 'TBC'; }
+			$cost = $formatter->formatCurrency($page->custom('Cost'), "GBP");			
+			
+			IF (empty($eventDate)) { 
+				$eventDate = 'TBC';
+				$eventTime = 'TBC';
+			}
+			ELSE {
+				$eventTime = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($eventDate)
+								,	"HH:mm"	//UCI standard formatted string
+								,	@$locale ).' hrs';
+				IF ( ($eventTime == '00:00 hrs') OR (empty($eventTime)) ) {$eventTime = 'TBC';}
+
+				$eventDate = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($eventDate)
+								,	"eee dd MMMM yyyy"	//UCI standard formatted string
+								,	@$locale );
+			}
+
+			IF (empty($openDate)) { 
+				$openDate = 'TBC';
+			}
+			ELSE {
+			$openDate = IntlDateFormatter::formatObject(
+								IntlCalendar::fromDateTime($openDate)
+							,	"dd/MM/yyyy"	//UCI standard formatted string
+							,	@$locale );
+			}
+			
+			IF (empty($closeDate)) { 
+				$closeDate = 'TBC';
+			}
+			ELSE {
+			$closeDate = IntlDateFormatter::formatObject(
+								IntlCalendar::fromDateTime($closeDate)
+							,	"dd/MM/yyyy"	//UCI standard formatted string
+							,	@$locale );
+			}
+
+			IF ((empty($eventDuration)) OR ($eventDuration == '')) { $eventDuration = 'TBC'; }
 
 			$html .= '<div class="SummariseChildrenInParent-plugin">';
 
