@@ -11,5 +11,9 @@
 	"selection-disabled)"		: "Disabled",
 	
 	"summary-label" 			: "Events Summary:",
-	"at-a-glance"				: "At A Glance"
+	"at-a-glance"				: "At A Glance",
+	"tickets-bookable-from"		: "Tickets bookable from",
+	"tickets-bookable-to"		: "to",
+	"define-earliest-date-label": "Earliest Date To Show Summary",
+	"define-earliest-date-tip"	: "Easily set the earliest date to show results without configuring each existing page. Format: yyyy-mm-dd"
 }

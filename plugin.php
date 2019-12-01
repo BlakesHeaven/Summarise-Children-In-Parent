@@ -5,9 +5,10 @@ class pluginSummariseChildrenInParent extends Plugin {
 	public function init()
 	{
 		$this->dbFields = array(
-			'enableForStatic'=>true,
-			'enableForSticky'=>true,
-			'enableForNormal'=>true
+			'enableForStatic'			=> true,
+			'enableForSticky'			=> true,
+			'enableForNormal'			=> true,
+			'earliestDateToShowSummary'	=> '2019-09-01'	// Controls both 'Child Summary' on Parent page and 'At a Glance' summary on Child Page.
 		);
 	}
 
@@ -15,7 +16,7 @@ class pluginSummariseChildrenInParent extends Plugin {
 	{
 		$login = new Login();
 
-		if ( $login->isLogged()) {
+		IF ( $login->isLogged()) {
 			$username = $login->username();
 			$user = new User($username);
 
@@ -27,23 +28,23 @@ class pluginSummariseChildrenInParent extends Plugin {
 			$GLOBALS['userDisplayName'] = 'No Name';
 		}
 	}
-	
+
 	public function adminHead()
 	{
 		// Include plugin's CSS files
 		$html = $this->includeCSS('summary-content-style.css');
-
-		return $html;
+		RETURN $html;
 	}
-	
+
 	public function siteHead()
 	{
 		// Include plugin's CSS files
 		$html = $this->includeCSS('summary-content-style.css');
-
-		return $html;
+		$html .= '<link href="https://fonts.googleapis.com/css?family=Lora:400,400i,700|Roboto:400,400i,700" rel="stylesheet" />';
+		
+		RETURN $html;
 	}
-	
+
 	// Admin Config Form
 	public function form()
 	{
@@ -93,128 +94,139 @@ class pluginSummariseChildrenInParent extends Plugin {
 			$html .= '</div>';
 		$html .= '</div></div></div>';
 
+		$html .= '<div class="divTable" style="width: 100%;" ><div class="divTableBody"><div class="divTableRow">';
+			$html .= '<div class="divTableCell">';
+				$html .= '<label>'.$L->get('define-earliest-date-label').'</label>';
+				$html .= '<input name="earliestDateToShowSummary" type="text" placeholder="yyyy-mm-dd" value="'.$this->getValue('earliestDateToShowSummary').'">';
+				$html .= '<span class="tip">'.$L->get('define-earliest-date-tip').'</span>';
+			$html .= '</div>';
+		$html .= '</div></div></div>';
+
 		$html .= '</div>';// Close class="SummariseChildrenInParent-plugin"
 		
-		return $html;
+		RETURN $html;
 	}
 
 	// Summary
 	public function pageEnd()
 	{
 		global $L;
-		global $url;
-		global $site;
-		global $pages;
-		global $page;
+		global $page;		
+		$earliestDateToShowSummary = strtotime( ($this->getValue('earliestDateToShowSummary')) );
+		$show = $page->custom('show');
+		$foundChildInScope = false;
 
-		// Check if the page has children
-		if ( ($page->hasChildren()) and ( $page->custom('show') )  ) 
+		// Check IF the page has children
+		IF ( ($page->hasChildren()) and ( $show ) ) 
 		{
+			$currencyFormatter = new NumberFormatter(@$locale,  NumberFormatter::CURRENCY);
 
-			$formatter = new NumberFormatter(@$locale,  NumberFormatter::CURRENCY);
-
-			$html .= '<h4>'.$L->get('summary-label').'</h4> ';
-			
+			$html = '';
+		
 			// Get the list of children
 			$children = $page->children();
 			foreach ($children as $child) {
 
-				$eventDate	= $child->custom('EventDate');
-				$openDate	= $child->custom('OpenDate');
-				$closeDate	= $child->custom('CloseDate');
-				$cost		= $child->custom('Cost');
+				IF ( strtotime($child->dateRaw()) >= $earliestDateToShowSummary )  {	// Define earliest Date in Admin
 
-				IF (empty($cost)) {
-					$cost = '';
-				}
-				ELSE {
-					$cost = ' ~ '.$formatter->formatCurrency($cost, "GBP") . "<br>";
-				}
+					$foundChildInScope = true;
+					$eventDateRaw	= $child->custom('EventDate');
+					$openDateRaw	= $child->custom('OpenDate');
+					$closeDateRaw	= $child->custom('CloseDate');
+					$costRaw		= $child->custom('Cost');
+					$venueLocation	= $child->custom('VenueLocation');
 
-				IF (empty($eventDate)) {
-					$eventDate = '';
-				}
-				ELSE {
-					$eventDate = ' ~ '.IntlDateFormatter::formatObject(
-										IntlCalendar::fromDateTime($eventDate)
-									,	"eee dd MMM yyyy"	//UCI standard formatted string
+					IF (empty($eventDateRaw)) {
+						$eventDateFormated = '';
+					}
+					ELSE {
+						$eventDateFormated = ' ~ '.IntlDateFormatter::formatObject(
+														IntlCalendar::fromDateTime($eventDateRaw)
+													,	"eee dd MMM yyyy"
+													,	@$locale );
+					}
+
+					IF (empty($costRaw)) {
+						$costFormated = '';
+					}
+					ELSE {
+						$costFormated = ' ~ '.$currencyFormatter->formatCurrency($costRaw, "GBP") . "<br>";
+					}
+
+					IF (empty($openDateRaw)) {
+						$openDateFormated = 'TBC';
+					}
+					ELSE {
+					$openDateFormated = IntlDateFormatter::formatObject(
+										IntlCalendar::fromDateTime($openDateRaw)
+									,	"dd/MM/yyyy"
 									,	@$locale );
-				}
-
-				IF (empty($openDate)) {
-					$openDate = 'TBC';
-				}
-				ELSE {
-				$openDate = IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($openDate)
-								,	"dd/MM/yyyy"	//UCI standard formatted string
-								,	@$locale );
-				}
-				
-				IF (empty($closeDate)) {
-					$closeDate = 'TBC';
-				}
-				ELSE {
-				$closeDate = IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($closeDate)
-								,	"dd/MM/yyyy"	//UCI standard formatted string
-								,	@$locale );
-				}
-
-				$bulletImage = $child->thumbCoverImage();
-				if (empty($bulletImage)) {
-					preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $child->content(), $matches);
-					if (isset($matches[1][0])) {
-						$bulletImage = $matches[1][0];
 					}
-				}	
-
-				$html .= '<article class="home-page hentry">';
-				$html .= '<div class="entry-header-bg" ';
-				if( !empty($bulletImage) ) { 
-					$html .=  'style="background-image:url('.$bulletImage .')" >';
+					
+					IF (empty($closeDateRaw)) {
+						$closeDateFormated = 'TBC';
+					}
+					ELSE {
+					$closeDateFormated = IntlDateFormatter::formatObject(
+										IntlCalendar::fromDateTime($closeDateRaw)
+									,	"dd/MM/yyyy"	//UCI standard formatted string
+									,	@$locale );
 					}
 
-				$html .= '	<a class="entry-header-bg-link" href="'. $child->permalink() .'" rel="bookmark">';
-					if(empty($bulletImage)){
-						$html .= '<svg class="icon icon-pencil" aria-hidden="true" role="img">
-									<use xlink:href="#icon-pencil"></use> </svg>';
+					$bulletImage = $child->thumbCoverImage();
+					IF (empty($bulletImage)) {
+						preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $child->content(), $matches);
+						IF (isset($matches[1][0])) {
+							$bulletImage = $matches[1][0];
+						}
+					}	
+
+					$html .= '<article class="home-page hentry">';
+					$html .= '<div class="entry-header-bg" ';
+					IF( !empty($bulletImage) ) { 
+						$html .=  'style="background-image:url('.$bulletImage .')" >';
+						}
+
+					$html .= '	<a class="entry-header-bg-link" href="'. $child->permalink() .'" rel="bookmark">';
+					IF(empty($bulletImage)){
+						$html .= '<svg class="icon icon-pencil" aria-hidden="true" role="img"><use xlink:href="#icon-pencil"></use> </svg>';
 					}
-				$html .= '		<span class="screen-reader-text">';
-				$html .= 			$L->get('Continue reading') . ' ' . $child->title() . PHP_EOL ;
-				$html .= '		</span>';
-				$html .= '	</a> ';
-				$html .= '</div>';
+					$html .= '		<span class="screen-reader-text">';
+					$html .= 			$L->get('Continue reading') . ' ' . $child->title() . PHP_EOL ;
+					$html .= '		</span>';
+					$html .= '	</a>';
+					$html .= '</div>';
 
-				$html .= '<div class="entry-inner">';
-				$html .= '	<header class="entry-header">';
-				$html .= '		<h5 class="entry-title title-font text-italic">';
-				$html .= '			<a href="' . $child->permalink().'" rel="bookmark">'.$child->title() . "$eventDate $cost</a>";
-				$html .= '		</h5>';
-				$html .= 		"Tickets available from $openDate to $closeDate";					
-				$html .= '	</header>';
+					$html .= '<div class="entry-inner">';
+					$html .= '	<header class="entry-header">';
+					$html .= '		<h5 class="entry-title title-font text-italic">';
+					$html .= '			<a href="' . $child->permalink().'" rel="bookmark">'.$child->title() . "$eventDateFormated $costFormated</a>";
+					$html .= '		</h5>';
+					$html .= '		<h5 class="entry-title title-font text-italic">'.$venueLocation.'</h5>';
+					$html .= 		$L->get('tickets-bookable-from')." $openDateFormated " . $L->get('tickets-bookable-to') . " $closeDateFormated";
+					$html .= '	</header>';
 
-				$html .= '	<div class="entry-summary">';
+					$html .= '	<div class="entry-summary">';
 
-				if(strlen($child->description()) > 0 ){
-                    $html .= $child->description();
+					IF ( strlen($child->description()) > 0  ) {
+						$html .= $child->description();
+					}
+					else {
+						$html .= $this->content2excerpt( $child->content(false) );
+					}
+					$html .= '	</div>';
+
+					$html .= '	<div class="entry-comment grid-same-line">';
+					$html .= '		<a class="more-link underline-link medium-font-weight" href="' . $child->permalink(). '" role="button">Read more</a>';
+					$html .= '	</div>';
+					$html .= '</div>';
+					$html .= '</article><hr>';
 				}
-				else {
-					$html .= $this->content2excerpt($child->content(false));
-				}
-				$html .= '	</div>';
-
-				$html .= '	<div class="entry-comment grid-same-line">';
-				$html .= '		<a class="more-link underline-link medium-font-weight" href="' . $child->permalink(). '" role="button">Read more</a>';
-				$html .= '	</div>';
-				$html .= '</div>';
-
-				$html .= '</article><hr>';
 			}
 		}
+		IF ( $foundChildInScope ) {$html = '<h4>'.$L->get('summary-label').'</h4> ' . $html; }
 
-		return $html;
-
+		RETURN $html;
 	}
 
 	public function pageBegin()
@@ -222,63 +234,72 @@ class pluginSummariseChildrenInParent extends Plugin {
 		global $L;
 		global $page;
 
-		$formatter = new NumberFormatter(@$locale,  NumberFormatter::CURRENCY);
+		$currencyFormatter = new NumberFormatter(@$locale, NumberFormatter::CURRENCY);
 		$isChild = false;
+		$earliestDateToShowSummary = $this->getValue('earliestDateToShowSummary');
 	
 		$parentKey = $page->parentKey();
-		if($parentKey!==false) {
+		IF($parentKey!==false) {
 			$isChild = true;
 		}
 		$show = $page->custom('show');
 
-		IF ( (strtotime($page->date())) < (strtotime('01-09-2019')) ) {$show = false;}
-		
+		IF ( (strtotime($page->dateRaw())) < ( strtotime($earliestDateToShowSummary) ) ) { $show = false; } // Define earliest Date in Admin
+
 		$html = '';
 
-		// Check if the page has children
-		if ( ( $isChild ) and ( $show ) )
+		// Check IF the page has children
+		IF ( ( $isChild ) and ( $show ) )
 		{
-			$eventDate	= $page->custom('EventDate');
-			$openDate	= $page->custom('OpenDate');
-			$closeDate	= $page->custom('CloseDate');
-			$venueLocation = $page->custom('VenueLocation');
-			$eventDuration = $page->custom('EventDuration');
-			$cost = $formatter->formatCurrency($page->custom('Cost'), "GBP");			
+			$eventDateRaw	= $page->custom('EventDate');
+			$costRaw 		= $page->custom('Cost');				
+			$openDateRaw	= $page->custom('OpenDate');
+			$closeDateRaw	= $page->custom('CloseDate');
+			$venueLocation	= $page->custom('VenueLocation');
+			$eventDuration	= $page->custom('EventDuration');
+		
 			
-			IF (empty($eventDate)) { 
-				$eventDate = 'TBC';
-				$eventTime = 'TBC';
+			IF (empty($eventDateRaw)) { 
+				$eventDateFormated = 'TBC';
+				$eventTimeFormatted = 'TBC';
 			}
 			ELSE {
-				$eventTime = IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($eventDate)
-								,	"HH:mm"	//UCI standard formatted string
+				$eventTimeFormatted = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($eventDateRaw)
+								,	"HH:mm"
 								,	@$locale ).' hrs';
-				IF ( ($eventTime == '00:00 hrs') OR (empty($eventTime)) ) {$eventTime = 'TBC';}
+				IF ( ($eventTimeFormatted == '00:00 hrs') OR (empty($eventTimeFormatted)) ) {$eventTimeFormatted = 'TBC';}
 
-				$eventDate = IntlDateFormatter::formatObject(
-									IntlCalendar::fromDateTime($eventDate)
-								,	"eee dd MMMM yyyy"	//UCI standard formatted string
+				$eventDateFormated = IntlDateFormatter::formatObject(
+									IntlCalendar::fromDateTime($eventDateRaw)
+								,	"eee dd MMMM yyyy"
 								,	@$locale );
 			}
 
-			IF (empty($openDate)) { 
-				$openDate = 'TBC';
+			IF (empty($costRaw)) {
+				$costFormated = 'TBC';
 			}
 			ELSE {
-			$openDate = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($openDate)
-							,	"dd/MM/yyyy"	//UCI standard formatted string
+				$costFormated = $currencyFormatter->formatCurrency($costRaw, "GBP");
+			}
+
+			IF (empty($openDateRaw)) { 
+				$openDateFormated = 'TBC';
+			}
+			ELSE {
+			$openDateFormated = IntlDateFormatter::formatObject(
+								IntlCalendar::fromDateTime($openDateRaw)
+							,	"dd/MM/yyyy"
 							,	@$locale );
 			}
 			
-			IF (empty($closeDate)) { 
-				$closeDate = 'TBC';
+			IF (empty($closeDateRaw)) { 
+				$closeDateFormated = 'TBC';
 			}
 			ELSE {
-			$closeDate = IntlDateFormatter::formatObject(
-								IntlCalendar::fromDateTime($closeDate)
-							,	"dd/MM/yyyy"	//UCI standard formatted string
+			$closeDateFormated = IntlDateFormatter::formatObject(
+								IntlCalendar::fromDateTime($closeDateRaw)
+							,	"dd/MM/yyyy"
 							,	@$locale );
 			}
 
@@ -291,18 +312,18 @@ class pluginSummariseChildrenInParent extends Plugin {
 			$html .= '<div class="divTable" style="width: 100%;" ><div class="divTableBody">';
 
 			$html .= '<div class="divTableRow">';
-			$html .= '<div class="divTableCell">'."Event Date: $eventDate</div>";
-			$html .= '<div class="divTableCell">'."Event Time: $eventTime</div>";
+			$html .= '<div class="divTableCell">'."Event Date: $eventDateFormated</div>";
+			$html .= '<div class="divTableCell">'."Event Time: $eventTimeFormatted</div>";
 			$html .= '</div>';
 
 			$html .= '<div class="divTableRow">';
-			$html .= '<div class="divTableCell">'."Venue/Location: $venueLocation</div>";
+			$html .= '<div class="divTableCell">'."Venue: $venueLocation</div>";
 			$html .= '<div class="divTableCell">'."Running Time: $eventDuration</div>";
 			$html .= '</div>';
 
 			$html .= '<div class="divTableRow">';
-			$html .= '<div class="divTableCell">'."Order Tickets: $openDate to $closeDate</div>";
-			$html .= '<div class="divTableCell">'."Cost: $cost</div>";
+			$html .= '<div class="divTableCell">'."Order Tickets: $openDateFormated to $closeDateFormated</div>";
+			$html .= '<div class="divTableCell">'."Cost: $costFormated</div>";
 			$html .= '</div>';
 
 			$html .= '</div></div>';
@@ -311,9 +332,7 @@ class pluginSummariseChildrenInParent extends Plugin {
 			$html .= '</div>';// Close class="SummariseChildrenInParent-plugin"
 
 		}
-
-		return $html;
-
+		RETURN $html;
 	}
 
 	public function content2excerpt($cont,  $limit=260, $ending = '...'  )
@@ -322,7 +341,7 @@ class pluginSummariseChildrenInParent extends Plugin {
 		$cont = html_entity_decode($cont, ENT_QUOTES | ENT_HTML5, "UTF-8");
 		$descr = $this->truncate2nearest_word(Text::removeHTMLTags($cont), $limit, $ending);
 		$descr = trim($descr);
-		return $descr;
+		RETURN $descr;
 	}
 
 	public function truncate2nearest_word($text, $limit, $ending = '...') {
@@ -330,7 +349,7 @@ class pluginSummariseChildrenInParent extends Plugin {
 		$text = substr($text, 0, strrpos(substr($text, 0, $limit), ' '));
 		$text = trim($text);
 		$text .= $ending;
-		return $text;
+		RETURN $text;
 	}
 
 
