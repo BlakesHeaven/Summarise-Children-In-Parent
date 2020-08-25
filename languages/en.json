@@ -10,7 +10,7 @@
 	"selection-enabled"			: "Enabled",
 	"selection-disabled)"		: "Disabled",
 	
-	"summary-label" 			: "Events Summary:",
+	"summary-label" 			: "Contents Summary:",
 	"at-a-glance"				: "At A Glance",
 	"tickets-bookable-from"		: "Tickets bookable from",
 	"tickets-bookable-to"		: "to",

@@ -203,7 +203,11 @@ class pluginSummariseChildrenInParent extends Plugin {
 					$html .= '			<a href="' . $child->permalink().'" rel="bookmark">'.$child->title() . "$eventDateFormated $costFormated</a>";
 					$html .= '		</h5>';
 					$html .= '		<h5 class="entry-title title-font text-italic">'.$venueLocation.'</h5>';
-					$html .= 		$L->get('tickets-bookable-from')." $openDateFormated " . $L->get('tickets-bookable-to') . " $closeDateFormated";
+
+					IF ( ($openDateFormated <> 'TBC') AND ($closeDateFormated <> 'TBC') ) {
+						$html .= 		$L->get('tickets-bookable-from')." $openDateFormated " . $L->get('tickets-bookable-to') . " $closeDateFormated";
+					}
+					
 					$html .= '	</header>';
 
 					$html .= '	<div class="entry-summary">';
